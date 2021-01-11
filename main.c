@@ -23,14 +23,13 @@ int input = 1;
 int maxX, maxY;
 WINDOW *top;
 WINDOW *bottom;
-sem_t mutex;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *sendMessage();
 
 void *listener();
 
 int main() {
-    sem_init(&mutex, 0, 1);
     struct sockaddr_in direccion_servidor;
     memset(&direccion_servidor, 0, sizeof(direccion_servidor));
     direccion_servidor.sin_family = AF_INET;
@@ -63,7 +62,6 @@ int main() {
     pthread_join(threads[0], NULL);
     pthread_join(threads[1], NULL);
     endwin();
-    sem_destroy(&mutex);
     return EXIT_SUCCESS;
 }
 
@@ -76,7 +74,7 @@ void *sendMessage() {
         mvwgetstr(bottom, input, 2, buffer);
         if (send(sockfd, buffer, strlen(buffer), 0) < 0)
             break;
-        sem_wait(&mutex);
+        pthread_mutex_lock(&mutex);
         mvwprintw(top, line, 2, buffer);
         if (line != maxY / 2 - 2) {
             line++;
@@ -88,7 +86,7 @@ void *sendMessage() {
         } else {
             scroll(bottom);
         }
-        sem_post(&mutex);
+        pthread_mutex_unlock(&mutex);
     }
     close(sockfd);
     pthread_exit(NULL);
@@ -96,22 +94,43 @@ void *sendMessage() {
 
 void *listener() {
     char buffer[TAM_BUFFER];
+    char ok[TAM_BUFFER];
+    int lgData;
     while (1) {
         bzero(buffer, TAM_BUFFER);
         wrefresh(top);
         wrefresh(bottom);
-        if (recv(sockfd, buffer, TAM_BUFFER, 0) < 0)
-            break;
+        while (1) {
+            if ((lgData = recv(sockfd, &ok, TAM_BUFFER, 0)) < 0)
+                break;
+            if (send(sockfd, "OK", lgData, 0) < 0)
+                break;
+            if (recv(sockfd, &ok, TAM_BUFFER, 0) < 0)
+                break;
+            if (strcmp(ok, "OK") != 0)
+                continue;
+            if (send(sockfd, "READY", 5, 0) < 0)
+                break;
+            if (recv(sockfd, &buffer, TAM_BUFFER, 0) < 0)
+                break;
+            if (lgData == strlen(buffer)) {
+                if (send(sockfd, "OK", 5, 0) < 0)
+                    break;
+                break;
+            }
+            if (send(sockfd, "NO", 5, 0) < 0)
+                break;
+        }
         if (strcmp(buffer, "quit()") == 0)
             break;
-        sem_wait(&mutex);
+        pthread_mutex_lock(&mutex);
         mvwprintw(top, line, 2, buffer);
         if (line != maxY / 2 - 2) {
             line++;
         } else {
             scroll(top);
         }
-        sem_post(&mutex);
+        pthread_mutex_unlock(&mutex);
     }
     close(sockfd);
     pthread_exit(NULL);
