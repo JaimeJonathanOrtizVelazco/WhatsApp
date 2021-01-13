@@ -46,12 +46,12 @@ int main() {
     //Init Window
     initscr();
     getmaxyx(stdscr, maxY, maxX);
-    top = newwin(maxY / 2, maxX, 0, 0);
-    bottom = newwin(maxY / 2, maxX, maxY / 2, 0);
+    top = newwin(3 * maxY / 4, maxX, 0, 0);
+    bottom = newwin(maxY / 4, maxX, 3*maxY / 4, 0);
     scrollok(top, TRUE);
     scrollok(bottom, TRUE);
-    wsetscrreg(top, 1, maxY / 2 - 2);
-    wsetscrreg(bottom, 1, maxY / 2 - 2);
+    wsetscrreg(top, 1, 3 * maxY / 4 - 2);
+    wsetscrreg(bottom, 1, maxY / 4 - 2);
     //End init Window
     pthread_t threads[2];
     pthread_attr_t attr;
@@ -76,12 +76,12 @@ void *sendMessage() {
             break;
         pthread_mutex_lock(&mutex);
         mvwprintw(top, line, 2, buffer);
-        if (line != maxY / 2 - 2) {
+        if (line != 3 * maxY / 4 - 2) {
             line++;
         } else {
             scroll(top);
         }
-        if (input != maxY / 2 - 2) {
+        if (input != maxY / 4 - 2) {
             input++;
         } else {
             scroll(bottom);
@@ -97,6 +97,8 @@ void *listener() {
     char ok[TAM_BUFFER];
     int lgData;
     while (1) {
+        getmaxyx(stdscr, maxY, maxX);
+        refresh();
         bzero(buffer, TAM_BUFFER);
         wrefresh(top);
         wrefresh(bottom);
@@ -123,9 +125,14 @@ void *listener() {
         }
         if (strcmp(buffer, "quit()") == 0)
             break;
+        /* if (strcmp(buffer, "clear()") == 0) {
+             line=1;
+             clear();
+             continue;
+         }*/
         pthread_mutex_lock(&mutex);
         mvwprintw(top, line, 2, buffer);
-        if (line != maxY / 2 - 2) {
+        if (line != 3 * maxY / 4 - 2) {
             line++;
         } else {
             scroll(top);
