@@ -47,7 +47,7 @@ int main() {
     initscr();
     getmaxyx(stdscr, maxY, maxX);
     top = newwin(3 * maxY / 4, maxX, 0, 0);
-    bottom = newwin(maxY / 4, maxX, 3*maxY / 4, 0);
+    bottom = newwin(maxY / 4, maxX, 3 * maxY / 4, 0);
     scrollok(top, TRUE);
     scrollok(bottom, TRUE);
     wsetscrreg(top, 1, 3 * maxY / 4 - 2);
