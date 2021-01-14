@@ -94,42 +94,16 @@ void *sendMessage() {
 
 void *listener() {
     char buffer[TAM_BUFFER];
-    char ok[TAM_BUFFER];
-    int lgData;
     while (1) {
         getmaxyx(stdscr, maxY, maxX);
         refresh();
         bzero(buffer, TAM_BUFFER);
         wrefresh(top);
         wrefresh(bottom);
-        while (1) {
-            if ((lgData = recv(sockfd, &ok, TAM_BUFFER, 0)) < 0)
-                break;
-            if (send(sockfd, "OK", lgData, 0) < 0)
-                break;
-            if (recv(sockfd, &ok, TAM_BUFFER, 0) < 0)
-                break;
-            if (strcmp(ok, "OK") != 0)
-                continue;
-            if (send(sockfd, "READY", 5, 0) < 0)
-                break;
-            if (recv(sockfd, &buffer, TAM_BUFFER, 0) < 0)
-                break;
-            if (lgData == strlen(buffer)) {
-                if (send(sockfd, "OK", 5, 0) < 0)
-                    break;
-                break;
-            }
-            if (send(sockfd, "NO", 5, 0) < 0)
-                break;
-        }
+        if ((recv(sockfd, &buffer, TAM_BUFFER, 0)) < 0)
+            break;
         if (strcmp(buffer, "quit()") == 0)
             break;
-        /* if (strcmp(buffer, "clear()") == 0) {
-             line=1;
-             clear();
-             continue;
-         }*/
         pthread_mutex_lock(&mutex);
         mvwprintw(top, line, 2, buffer);
         if (line != 3 * maxY / 4 - 2) {
